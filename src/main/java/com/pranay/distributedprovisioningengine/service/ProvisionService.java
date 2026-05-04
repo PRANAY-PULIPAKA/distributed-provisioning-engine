@@ -18,8 +18,12 @@ public class ProvisionService {
         }
 
         public ProvisionRequest create(ProvisionRequestDto dto){
-            ProvisionRequest request = ProvisionRequest.builder().resourceType(dto.getResourceType()).status("PENDING").build();
-            return repository.save(request);
+           ProvisionRequest request = new ProvisionRequest();
+           request.setResourceType(dto.getResourceType());
+
+           request.setStatus("PENDING");
+           return repository.save(request);
+
         }
         public List<ProvisionRequest> getAll(){
             return repository.findAll();
