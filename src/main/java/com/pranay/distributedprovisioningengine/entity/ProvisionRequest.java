@@ -13,6 +13,8 @@ public class ProvisionRequest{
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     private String resourceType; // VM, CONTAINER
-    private String status; //Pending, Success, Failed
+
+    @Enumerated(EnumType.STRING)
+    private Status status; //Pending, Success, Failed
 
 }

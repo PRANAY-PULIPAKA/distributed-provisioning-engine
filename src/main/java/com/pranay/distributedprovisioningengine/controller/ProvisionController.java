@@ -2,6 +2,7 @@ package com.pranay.distributedprovisioningengine.controller;
 
 import com.pranay.distributedprovisioningengine.dto.ProvisionRequestDto;
 import com.pranay.distributedprovisioningengine.entity.ProvisionRequest;
+import com.pranay.distributedprovisioningengine.entity.Status;
 import com.pranay.distributedprovisioningengine.service.ProvisionService;
 
 import org.springframework.web.bind.annotation.*;
@@ -26,5 +27,10 @@ public class ProvisionController {
     @GetMapping
     public List<ProvisionRequest> getAll(){
         return service.getAll();
+    }
+
+    @PutMapping("/{id}/status")
+    public ProvisionRequest updateStatus(@PathVariable Long id, @RequestParam Status status){
+        return service.updateStatus(id, status);
     }
 }
