@@ -3,6 +3,8 @@ package com.pranay.distributedprovisioningengine.service;
 import com.pranay.distributedprovisioningengine.entity.ProvisionRequest;
 import com.pranay.distributedprovisioningengine.dto.ProvisionRequestDto;
 import com.pranay.distributedprovisioningengine.entity.Status;
+import com.pranay.distributedprovisioningengine.exception.InvalidStateTransitionException;
+import com.pranay.distributedprovisioningengine.exception.ResourceNotFoundException;
 import com.pranay.distributedprovisioningengine.repository.ProvisionRequestRepository;
 import org.springframework.stereotype.Service;
 
@@ -32,12 +34,12 @@ public class ProvisionService {
 
         public ProvisionRequest updateStatus(Long id, Status newStatus){
 
-            ProvisionRequest request = repository.findById(id).orElseThrow(() -> new RuntimeException("Request not found"));
+            ProvisionRequest request = repository.findById(id).orElseThrow(() -> new ResourceNotFoundException("Request not found"));
 
             Status current = request.getStatus();
 
             if(!isValidTransition(current, newStatus)){
-                throw new RuntimeException("Invalid status transition: " + current + " -> " + newStatus);
+                throw new InvalidStateTransitionException("Invalid status transition: " + current + " -> " + newStatus);
             }
 
             request.setStatus(newStatus);
