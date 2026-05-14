@@ -25,19 +25,22 @@ public class ProvisionService {
         this.producer = producer;
     }
 
-    public ProvisionRequest create(ProvisionRequestDto dto) {
+    public ProvisionRequest create(ProvisionRequestDto dto, String idempotencyKey) {
 
-        ProvisionRequest request = new ProvisionRequest();
+        return repository.findByIdempotencyKey(idempotencyKey)
+                .orElseGet(() -> {
+                    ProvisionRequest request = new ProvisionRequest();
 
-        request.setResourceType(dto.getResourceType());
+                    request.setResourceType(dto.getResourceType());
+                    request.setIdempotencyKey(idempotencyKey);
+                    request.setStatus(Status.PENDING);
 
-        request.setStatus(Status.PENDING);
+                    ProvisionRequest saved = repository.save(request);
 
-        ProvisionRequest saved = repository.save(request);
+                    producer.sendProvisionEvent(saved);
 
-        producer.sendProvisionEvent(saved);
-
-        return saved;
+                    return saved;
+                });
     }
 
     public List<ProvisionRequest> getAll() {

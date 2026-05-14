@@ -20,8 +20,9 @@ public class ProvisionController {
     }
 
     @PostMapping
-    public ProvisionRequest create(@RequestBody ProvisionRequestDto dto){
-        return service.create(dto);
+    public ProvisionRequest create(@RequestBody ProvisionRequestDto dto, @RequestHeader("Idempotency-key") String idempotencyKey){
+
+        return service.create(dto, idempotencyKey);
     }
 
     @GetMapping
