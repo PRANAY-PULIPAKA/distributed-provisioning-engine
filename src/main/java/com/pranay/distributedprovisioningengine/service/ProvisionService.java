@@ -8,6 +8,9 @@ import com.pranay.distributedprovisioningengine.exception.ResourceNotFoundExcept
 import com.pranay.distributedprovisioningengine.kafka.producer.ProvisionProducer;
 import com.pranay.distributedprovisioningengine.repository.ProvisionRequestRepository;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -15,27 +18,50 @@ import java.util.List;
 @Service
 public class ProvisionService {
 
+    private static final Logger logger =
+            LoggerFactory.getLogger(ProvisionService.class);
+
     private final ProvisionRequestRepository repository;
     private final ProvisionProducer producer;
 
-    public ProvisionService(ProvisionRequestRepository repository,
-                            ProvisionProducer producer) {
+    public ProvisionService(
+            ProvisionRequestRepository repository,
+            ProvisionProducer producer
+    ) {
 
         this.repository = repository;
         this.producer = producer;
     }
 
-    public ProvisionRequest create(ProvisionRequestDto dto, String idempotencyKey) {
+    public ProvisionRequest create(
+            ProvisionRequestDto dto,
+            String idempotencyKey
+    ) {
+
+        logger.info(
+                "Creating provision request for resourceType={}",
+                dto.getResourceType()
+        );
 
         return repository.findByIdempotencyKey(idempotencyKey)
                 .orElseGet(() -> {
+
                     ProvisionRequest request = new ProvisionRequest();
 
                     request.setResourceType(dto.getResourceType());
+
                     request.setIdempotencyKey(idempotencyKey);
+
                     request.setStatus(Status.PENDING);
 
+                    request.setRetryCount(0);
+
                     ProvisionRequest saved = repository.save(request);
+
+                    logger.info(
+                            "Provision request saved with id={}",
+                            saved.getId()
+                    );
 
                     producer.sendProvisionEvent(saved);
 
@@ -44,18 +70,40 @@ public class ProvisionService {
     }
 
     public List<ProvisionRequest> getAll() {
+
+        logger.info("Fetching all provision requests");
+
         return repository.findAll();
     }
 
-    public ProvisionRequest updateStatus(Long id, Status newStatus) {
+    public ProvisionRequest updateStatus(
+            Long id,
+            Status newStatus
+    ) {
 
         ProvisionRequest request = repository.findById(id)
                 .orElseThrow(() ->
-                        new ResourceNotFoundException("Request not found"));
+                        new ResourceNotFoundException(
+                                "Request not found"
+                        ));
 
         Status current = request.getStatus();
 
+        logger.info(
+                "Updating request id={} status {} -> {}",
+                id,
+                current,
+                newStatus
+        );
+
         if (!isValidTransition(current, newStatus)) {
+
+            logger.error(
+                    "Invalid status transition {} -> {} for request id={}",
+                    current,
+                    newStatus,
+                    id
+            );
 
             throw new InvalidStateTransitionException(
                     "Invalid status transition: "
@@ -65,10 +113,21 @@ public class ProvisionService {
 
         request.setStatus(newStatus);
 
-        return repository.save(request);
+        ProvisionRequest updated = repository.save(request);
+
+        logger.info(
+                "Request id={} updated successfully to status={}",
+                updated.getId(),
+                updated.getStatus()
+        );
+
+        return updated;
     }
 
-    private boolean isValidTransition(Status current, Status next) {
+    private boolean isValidTransition(
+            Status current,
+            Status next
+    ) {
 
         return switch (current) {
 
