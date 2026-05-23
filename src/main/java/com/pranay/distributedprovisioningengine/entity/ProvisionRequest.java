@@ -21,6 +21,8 @@ public class ProvisionRequest{
     @Enumerated(EnumType.STRING)
     private Status status; //Pending, Success, Failed
 
+    private int retryCount;
+
 
 
 
