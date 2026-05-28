@@ -30,8 +30,16 @@ public class ProvisionController {
         return service.getAll();
     }
 
+    @DeleteMapping("/{id}")
+    public void delete(@PathVariable Long id) {
+
+        service.delete(id);
+    }
+
     @PutMapping("/{id}/status")
     public ProvisionRequest updateStatus(@PathVariable Long id, @RequestParam Status status){
         return service.updateStatus(id, status);
     }
+
+
 }

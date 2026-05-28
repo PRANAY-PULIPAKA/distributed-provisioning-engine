@@ -13,17 +13,19 @@ public class ProvisionRequest{
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private String resourceType; // VM, CONTAINER
+
+    @Enumerated(EnumType.STRING)
+    private ResourceType resourceType;
 
     @Column(unique = true, nullable = false)
     private String idempotencyKey;
 
     @Enumerated(EnumType.STRING)
-    private Status status; //Pending, Success, Failed
+    private Status status;
 
     private int retryCount;
 
-
-
+    @Column(unique = true, nullable = false)
+    private String serverName;
 
 }

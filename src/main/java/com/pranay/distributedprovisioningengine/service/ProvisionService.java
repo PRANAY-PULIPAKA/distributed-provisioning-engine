@@ -22,6 +22,7 @@ public class ProvisionService {
             LoggerFactory.getLogger(ProvisionService.class);
 
     private final ProvisionRequestRepository repository;
+
     private final ProvisionProducer producer;
 
     public ProvisionService(
@@ -39,28 +40,58 @@ public class ProvisionService {
     ) {
 
         logger.info(
-                "Creating provision request for resourceType={}",
-                dto.getResourceType()
+                "Creating provision request for resourceType={} serverName={}",
+                dto.getResourceType(),
+                dto.getServerName()
         );
+
+        if (dto.getServerName() == null
+                || dto.getServerName().trim().isEmpty()) {
+
+            throw new IllegalArgumentException(
+                    "Server name cannot be empty"
+            );
+        }
+
+        if (repository.existsByServerName(
+                dto.getServerName())) {
+
+            throw new IllegalArgumentException(
+                    "Server name already exists"
+            );
+        }
 
         return repository.findByIdempotencyKey(idempotencyKey)
                 .orElseGet(() -> {
 
-                    ProvisionRequest request = new ProvisionRequest();
+                    ProvisionRequest request =
+                            new ProvisionRequest();
 
-                    request.setResourceType(dto.getResourceType());
+                    request.setResourceType(
+                            dto.getResourceType()
+                    );
 
-                    request.setIdempotencyKey(idempotencyKey);
+                    request.setServerName(
+                            dto.getServerName()
+                    );
 
-                    request.setStatus(Status.PENDING);
+                    request.setIdempotencyKey(
+                            idempotencyKey
+                    );
+
+                    request.setStatus(
+                            Status.PENDING
+                    );
 
                     request.setRetryCount(0);
 
-                    ProvisionRequest saved = repository.save(request);
+                    ProvisionRequest saved =
+                            repository.save(request);
 
                     logger.info(
-                            "Provision request saved with id={}",
-                            saved.getId()
+                            "Provision request saved with id={} serverName={}",
+                            saved.getId(),
+                            saved.getServerName()
                     );
 
                     producer.sendProvisionEvent(saved);
@@ -71,7 +102,9 @@ public class ProvisionService {
 
     public List<ProvisionRequest> getAll() {
 
-        logger.info("Fetching all provision requests");
+        logger.info(
+                "Fetching all provision requests"
+        );
 
         return repository.findAll();
     }
@@ -81,13 +114,15 @@ public class ProvisionService {
             Status newStatus
     ) {
 
-        ProvisionRequest request = repository.findById(id)
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Request not found"
-                        ));
+        ProvisionRequest request =
+                repository.findById(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Request not found"
+                                ));
 
-        Status current = request.getStatus();
+        Status current =
+                request.getStatus();
 
         logger.info(
                 "Updating request id={} status {} -> {}",
@@ -107,13 +142,16 @@ public class ProvisionService {
 
             throw new InvalidStateTransitionException(
                     "Invalid status transition: "
-                            + current + " -> " + newStatus
+                            + current
+                            + " -> "
+                            + newStatus
             );
         }
 
         request.setStatus(newStatus);
 
-        ProvisionRequest updated = repository.save(request);
+        ProvisionRequest updated =
+                repository.save(request);
 
         logger.info(
                 "Request id={} updated successfully to status={}",
@@ -140,5 +178,22 @@ public class ProvisionService {
 
             case SUCCESS, FAILED -> false;
         };
+    }
+
+    public void delete(Long id) {
+
+        ProvisionRequest request =
+                repository.findById(id)
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Request not found"
+                                ));
+
+        repository.delete(request);
+
+        logger.info(
+                "Provision request deleted id={}",
+                id
+        );
     }
 }
