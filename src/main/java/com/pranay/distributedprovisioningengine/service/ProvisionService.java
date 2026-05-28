@@ -189,10 +189,56 @@ public class ProvisionService {
                                         "Request not found"
                                 ));
 
+        try {
+
+            logger.info(
+                    "Stopping Docker container={}",
+                    request.getServerName()
+            );
+
+            ProcessBuilder builder =
+                    new ProcessBuilder(
+                            "docker",
+                            "rm",
+                            "-f",
+                            request.getServerName()
+                    );
+
+            Process process =
+                    builder.start();
+
+            int exitCode =
+                    process.waitFor();
+
+            if (exitCode != 0) {
+
+                throw new RuntimeException(
+                        "Failed to delete Docker container"
+                );
+            }
+
+            logger.info(
+                    "Docker container deleted={}",
+                    request.getServerName()
+            );
+
+        } catch (Exception e) {
+
+            logger.error(
+                    "Container deletion failed for server={} error={}",
+                    request.getServerName(),
+                    e.getMessage()
+            );
+
+            throw new RuntimeException(
+                    "Infrastructure deletion failed"
+            );
+        }
+
         repository.delete(request);
 
         logger.info(
-                "Provision request deleted id={}",
+                "Provision request metadata deleted id={}",
                 id
         );
     }

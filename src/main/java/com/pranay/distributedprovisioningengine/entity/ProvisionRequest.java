@@ -1,6 +1,7 @@
 package com.pranay.distributedprovisioningengine.entity;
 
 import jakarta.persistence.*;
+
 import lombok.*;
 
 @Entity
@@ -8,11 +9,16 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ProvisionRequest{
+public class ProvisionRequest {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(unique = true, nullable = false)
+    private String serverName;
+
+    private Integer port;
 
     @Enumerated(EnumType.STRING)
     private ResourceType resourceType;
@@ -24,8 +30,4 @@ public class ProvisionRequest{
     private Status status;
 
     private int retryCount;
-
-    @Column(unique = true, nullable = false)
-    private String serverName;
-
 }

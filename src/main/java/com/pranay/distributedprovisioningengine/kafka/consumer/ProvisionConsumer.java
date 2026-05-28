@@ -12,8 +12,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 
-import java.util.Random;
-
 @Service
 public class ProvisionConsumer {
 
@@ -21,16 +19,16 @@ public class ProvisionConsumer {
             LoggerFactory.getLogger(ProvisionConsumer.class);
 
     private final ProvisionRequestRepository repository;
+
     private final ProvisionProducer producer;
 
     private static final int MAX_RETRIES = 3;
-
-    private final Random random = new Random();
 
     public ProvisionConsumer(
             ProvisionRequestRepository repository,
             ProvisionProducer producer
     ) {
+
         this.repository = repository;
         this.producer = producer;
     }
@@ -46,11 +44,12 @@ public class ProvisionConsumer {
                 request.getId()
         );
 
-        ProvisionRequest existing = repository.findById(request.getId())
-                .orElseThrow(() ->
-                        new ResourceNotFoundException(
-                                "Provision request not found"
-                        ));
+        ProvisionRequest existing =
+                repository.findById(request.getId())
+                        .orElseThrow(() ->
+                                new ResourceNotFoundException(
+                                        "Provision request not found"
+                                ));
 
         existing.setStatus(Status.IN_PROGRESS);
 
@@ -59,18 +58,41 @@ public class ProvisionConsumer {
         try {
 
             logger.info(
-                    "Provisioning started for request id={}",
+                    "Provisioning REAL PostgreSQL container for request id={}",
                     existing.getId()
             );
 
-            Thread.sleep(3000);
+            int allocatedPort =
+                    5433 + existing.getId().intValue();
 
-            boolean failed = random.nextBoolean();
+            existing.setPort(allocatedPort);
 
-            if (failed) {
+            repository.save(existing);
+
+            ProcessBuilder builder =
+                    new ProcessBuilder(
+                            "docker",
+                            "run",
+                            "-d",
+                            "--name",
+                            existing.getServerName(),
+                            "-e",
+                            "POSTGRES_PASSWORD=password",
+                            "-p",
+                            allocatedPort + ":5432",
+                            "postgres:15"
+                    );
+
+            Process process =
+                    builder.start();
+
+            int exitCode =
+                    process.waitFor();
+
+            if (exitCode != 0) {
 
                 throw new RuntimeException(
-                        "Temporary cloud provisioning failure"
+                        "Docker container provisioning failed"
                 );
             }
 
@@ -79,24 +101,32 @@ public class ProvisionConsumer {
             repository.save(existing);
 
             logger.info(
-                    "Provisioning SUCCESS for request id={}",
-                    existing.getId()
+                    "Provisioning SUCCESS for request id={} container={} port={}",
+                    existing.getId(),
+                    existing.getServerName(),
+                    allocatedPort
             );
 
         } catch (Exception e) {
 
             logger.error(
-                    "Provisioning FAILED for request id={}",
-                    existing.getId()
+                    "Provisioning FAILED for request id={} error={}",
+                    existing.getId(),
+                    e.getMessage()
             );
 
-            int retries = existing.getRetryCount();
+            int retries =
+                    existing.getRetryCount();
 
             if (retries < MAX_RETRIES) {
 
-                existing.setRetryCount(retries + 1);
+                existing.setRetryCount(
+                        retries + 1
+                );
 
-                existing.setStatus(Status.PENDING);
+                existing.setStatus(
+                        Status.PENDING
+                );
 
                 repository.save(existing);
 
@@ -106,11 +136,15 @@ public class ProvisionConsumer {
                         retries + 1
                 );
 
-                producer.sendProvisionEvent(existing);
+                producer.sendProvisionEvent(
+                        existing
+                );
 
             } else {
 
-                existing.setStatus(Status.FAILED);
+                existing.setStatus(
+                        Status.FAILED
+                );
 
                 repository.save(existing);
 
