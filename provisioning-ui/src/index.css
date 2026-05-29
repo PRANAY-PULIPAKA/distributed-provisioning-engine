@@ -1,0 +1,40 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background-color: #f3f4f6;
+  color: #111827;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Hide scrollbars but keep scroll functionality */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+button:focus-visible {
+  outline: 2px solid #0078d4;
+  outline-offset: 2px;
+}
+
+input:focus {
+  border-color: #0078d4 !important;
+  box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.15);
+}

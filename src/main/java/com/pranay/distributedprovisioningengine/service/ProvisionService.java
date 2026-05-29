@@ -45,23 +45,32 @@ public class ProvisionService {
                 dto.getServerName()
         );
 
-        if (dto.getServerName() == null
-                || dto.getServerName().trim().isEmpty()) {
+        // VALIDATION
+        if (
+                dto.getServerName() == null
+                        || dto.getServerName().trim().isEmpty()
+        ) {
 
             throw new IllegalArgumentException(
                     "Server name cannot be empty"
             );
         }
 
-        if (repository.existsByServerName(
-                dto.getServerName())) {
+        // DUPLICATE SERVER NAME CHECK
+        if (
+                repository.existsByServerName(
+                        dto.getServerName()
+                )
+        ) {
 
             throw new IllegalArgumentException(
                     "Server name already exists"
             );
         }
 
-        return repository.findByIdempotencyKey(idempotencyKey)
+        // IDEMPOTENCY CHECK
+        return repository
+                .findByIdempotencyKey(idempotencyKey)
                 .orElseGet(() -> {
 
                     ProvisionRequest request =
@@ -131,7 +140,12 @@ public class ProvisionService {
                 newStatus
         );
 
-        if (!isValidTransition(current, newStatus)) {
+        if (
+                !isValidTransition(
+                        current,
+                        newStatus
+                )
+        ) {
 
             logger.error(
                     "Invalid status transition {} -> {} for request id={}",
@@ -173,8 +187,10 @@ public class ProvisionService {
                     next == Status.IN_PROGRESS;
 
             case IN_PROGRESS ->
-                    (next == Status.SUCCESS
-                            || next == Status.FAILED);
+                    (
+                            next == Status.SUCCESS
+                                    || next == Status.FAILED
+                    );
 
             case SUCCESS, FAILED -> false;
         };
