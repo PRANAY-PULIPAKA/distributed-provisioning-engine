@@ -2,6 +2,7 @@ import {
     BrowserRouter,
     Routes,
     Route,
+    Navigate,
 } from "react-router-dom";
 
 import Dashboard from "./pages/Dashboard";
@@ -9,7 +10,17 @@ import Dashboard from "./pages/Dashboard";
 import PostgreSQLPage
     from "./pages/PostgreSQLPage";
 
+import Login from "./pages/Login";
+
+import Register from "./pages/Register";
+
+import ProtectedRoute
+    from "./components/ProtectedRoute";
+
 function App() {
+
+    const token =
+        localStorage.getItem("token");
 
     return (
 
@@ -17,14 +28,51 @@ function App() {
 
             <Routes>
 
+                {/* LOGIN */}
+
+                <Route
+                    path="/login"
+                    element={<Login />}
+                />
+
+                {/* REGISTER */}
+
+                <Route
+                    path="/register"
+                    element={<Register />}
+                />
+
+                {/* DASHBOARD */}
+
                 <Route
                     path="/"
-                    element={<Dashboard />}
+                    element={
+                        <ProtectedRoute>
+                            <Dashboard />
+                        </ProtectedRoute>
+                    }
                 />
+
+                {/* POSTGRES */}
 
                 <Route
                     path="/postgresql"
-                    element={<PostgreSQLPage />}
+                    element={
+                        <ProtectedRoute>
+                            <PostgreSQLPage />
+                        </ProtectedRoute>
+                    }
+                />
+
+                {/* DEFAULT REDIRECT */}
+
+                <Route
+                    path="*"
+                    element={
+                        token
+                            ? <Navigate to="/" />
+                            : <Navigate to="/login" />
+                    }
                 />
 
             </Routes>
